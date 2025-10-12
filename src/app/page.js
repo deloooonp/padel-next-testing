@@ -1,103 +1,198 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import React, { useState, useEffect } from "react";
+import {
+  getFields,
+  getBookingsByDate,
+  createBooking,
+} from "@/lib/supabaseClient";
+
+import BookingModal from "@/components/BookingModal";
+import { calculateEndTime } from "@/utils/utils";
+
+export default function PadelPrototype() {
+  const [selectedDate, setSelectedDate] = useState(() =>
+    new Date().toISOString().slice(0, 10)
+  );
+  const [fields, setFields] = useState([]);
+  const [slots, setSlots] = useState([]);
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [modalData, setModalData] = useState(null);
+
+  useEffect(() => {
+    const generateSlots = () => {
+      const s = [];
+      for (let h = 10; h <= 21; h++) {
+        const hh = String(h).padStart(2, "0");
+        s.push({
+          label: `${hh}:00 - ${String(h + 1).padStart(2, "0")}:00`,
+          value: `${hh}:00`,
+        });
+      }
+      return s;
+    };
+    setSlots(generateSlots());
+  }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const fieldData = await getFields();
+        const bookingData = await getBookingsByDate(selectedDate);
+        setFields(fieldData || []);
+        setBookings(bookingData || []);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+    fetchData();
+  }, [selectedDate]);
+
+  const isSlotBooked = (fieldId, date, slot) => {
+    return bookings.some(
+      (b) =>
+        b.field_id === fieldId &&
+        b.date === date &&
+        b.slot === slot &&
+        b.status === "paid"
+    );
+  };
+
+  const handleSelectSlot = (field, slot) => {
+    setModalData({ field, slot });
+  };
+
+  const handleConfirmBooking = async (field, slot, duration) => {
+    const startTime = slot;
+    const endTime = calculateEndTime(startTime, duration);
+
+    if (loading) return;
+    setLoading(true);
+    setMessage("");
+
+    try {
+      await createBooking({
+        field_id: field.id,
+        date: selectedDate,
+        slot,
+        end_slot: endTime,
+        total_price: duration * field.price_per_hour,
+        status: "paid",
+      });
+      setMessage(
+        `✅ Booking untuk ${field.name} pada jam ${slot} hingga ${endTime} berhasil dibuat!`
+      );
+      const bookingData = await getBookingsByDate(selectedDate);
+      setBookings(bookingData || []);
+      setModalData(null);
+    } catch (error) {
+      console.error("Booking error:", error);
+      setMessage("❌ Gagal membuat booking.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const snapScript = "https://app.sandbox.midtrans.com/snap/snap.js";
+    const clientKey = process.env.NEXT_PUBLIC_CLIENT;
+
+    const script = document.createElement("script");
+    script.src = snapScript;
+    script.setAttribute("data-client-key", clientKey);
+    script.async = true;
+
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.js
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <main className="min-h-screen bg-gray-900 text-white p-6">
+      <div className="max-w-4xl mx-auto">
+        <header className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-semibold text-white">
+            Padel Booking — Supabase Connected
+          </h1>
+        </header>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+        <section className="mb-6 bg-gray-800 p-4 rounded-2xl shadow-sm">
+          <label className="block text-sm font-medium text-gray-200">
+            Pilih tanggal
+          </label>
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="mt-2 p-2 border border-gray-600 bg-gray-900 text-white rounded w-48"
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+        </section>
+
+        {message && (
+          <div className="mb-4 p-3 bg-gray-800 rounded border border-gray-700">
+            {message}
+          </div>
+        )}
+
+        <section className="grid gap-4">
+          {fields.map((field) => (
+            <article
+              key={field.id}
+              className="bg-gray-800 p-4 rounded-2xl shadow-sm"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-medium text-white">
+                    {field.name}
+                  </h2>
+                  <div className="text-sm text-gray-400">
+                    Rp {field.price_per_hour.toLocaleString()} / jam
+                  </div>
+                </div>
+                <button
+                  className="px-3 py-1 bg-gray-700 text-white rounded"
+                  onClick={() => alert("Field details placeholder")}
+                >
+                  Detail
+                </button>
+              </div>
+
+              <div className="mt-4 grid grid-cols-4 gap-2">
+                {slots.map((s) => {
+                  const booked = isSlotBooked(field.id, selectedDate, s.value);
+                  return (
+                    <button
+                      key={s.value}
+                      onClick={() => handleSelectSlot(field, s.value)}
+                      className={`text-sm p-2 rounded transition-colors duration-150 ${
+                        booked
+                          ? "bg-red-700 text-white cursor-not-allowed"
+                          : "bg-green-700 hover:bg-green-600 text-white active:bg-green-700 focus:outline-2 focus:outline-offset-2 focus:outline-green-500"
+                      }`}
+                      disabled={booked || loading}
+                    >
+                      {booked ? "Booked" : s.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </article>
+          ))}
+        </section>
+      </div>
+
+      {modalData && (
+        <BookingModal
+          field={modalData.field}
+          slot={modalData.slot}
+          onClose={() => setModalData(null)}
+          onConfirm={handleConfirmBooking}
+        />
+      )}
+    </main>
   );
 }
