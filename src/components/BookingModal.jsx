@@ -32,7 +32,43 @@ export default function BookingModal({ field, slot, onClose, onConfirm }) {
     });
 
     const requestData = await response.json();
-    window.snap.pay(requestData.token);
+    if (window.snap && requestData.token) {
+      window.snap.pay(requestData.token, {
+        // Callback saat pembayaran SUKSES
+        onSuccess: function (result) {
+          console.log("Payment success:", result);
+
+          // 1. Panggil prop onConfirm dari parent component
+          // Kirim semua data booking yang dibutuhkan ke DB
+          onConfirm(field, slot, endSlot, result.transaction_id);
+
+          // 2. Tutup modal booking
+          onClose();
+        },
+        // Callback saat pembayaran PENDING (misalnya menunggu transfer bank)
+        onPending: function (result) {
+          console.log("Payment pending:", result);
+          alert(
+            "Pembayaran Anda sedang diproses. Status: Pending. Cek status berkala."
+          );
+          // Biasanya, modal ditutup atau diarahkan ke halaman status pending
+          onClose();
+        },
+        // Callback saat pembayaran GAGAL atau ada error
+        onError: function (result) {
+          console.error("Payment error:", result);
+          alert("Pembayaran gagal. Silakan coba lagi.");
+          // Biarkan modal tetap terbuka untuk dicoba lagi
+        },
+        // Callback saat pengguna menutup modal Midtrans Snap
+        onClose: function () {
+          console.log("Payment popup closed without finishing the transaction");
+          // Tidak perlu melakukan apa-apa atau berikan feedback ke user
+        },
+      });
+    } else {
+      alert("Gagal memuat pembayaran.");
+    }
   };
 
   return (

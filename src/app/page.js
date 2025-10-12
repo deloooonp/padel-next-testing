@@ -64,7 +64,12 @@ export default function PadelPrototype() {
     setModalData({ field, slot });
   };
 
-  const handleConfirmBooking = async (field, slot, duration) => {
+  const handleConfirmBooking = async (
+    field,
+    slot,
+    duration,
+    transaction_id
+  ) => {
     const startTime = slot;
     const endTime = calculateEndTime(startTime, duration);
 
@@ -79,6 +84,7 @@ export default function PadelPrototype() {
         slot,
         end_slot: endTime,
         total_price: duration * field.price_per_hour,
+        transaction_id: transaction_id,
         status: "paid",
       });
       setMessage(

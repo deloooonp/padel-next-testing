@@ -30,6 +30,7 @@ export async function createBooking({
   end_slot,
   status,
   total_price,
+  transaction_id,
 }) {
   const { data, error } = await supabase.from("bookings").insert([
     {
@@ -39,8 +40,17 @@ export async function createBooking({
       end_slot,
       status,
       total_price,
+      transaction_id,
     },
   ]);
-  if (error) throw error;
+  console.log("RAW insert result:", { data, error });
+
+  if (error) {
+    console.error(
+      "Full Supabase error dump:",
+      JSON.stringify(error, Object.getOwnPropertyNames(error), 2)
+    );
+    throw error;
+  }
   return data;
 }
