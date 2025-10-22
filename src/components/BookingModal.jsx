@@ -2,10 +2,6 @@ import React, { useState } from "react";
 
 import { calculateEndTime } from "@/utils/utils";
 
-// Komponen modal untuk konfirmasi booking lapangan
-// endSlot di sini merepresentasikan durasi berapa jam booking berlangsung dari waktu mulai (slot)
-// Misalnya kalau user pilih slot '10:00' dan endSlot=2, berarti booking berlangsung dari 10:00 sampai 12:00.
-
 export default function BookingModal({ field, slot, onClose, onConfirm }) {
   const [endSlot, setEndSlot] = useState(1);
 

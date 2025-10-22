@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { createBooking } from "../lib/supabaseClient";
-import BookingModal from "../components/BookingModal";
-import { calculateEndTime, generateSlots, isSlotBooked } from "@/utils/utils";
+import BookingModal from "@/components/BookingModal";
+import { generateSlots, isSlotBooked } from "@/utils/utils";
 import { usePadelData } from "@/hooks/usePadelData";
+import { useBookingLogic } from "@/hooks/useBookingLogic";
 
 const slots = generateSlots();
 
@@ -12,9 +12,10 @@ export default function PadelPrototype() {
   const { fields, bookings, selectedDate, setSelectedDate, refreshBookings } =
     usePadelData();
 
+  const { loading, message, setMessage, handleConfirmBooking } =
+    useBookingLogic(selectedDate, refreshBookings);
+
   // State yang berhubungan dengan UI
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
   const [modalData, setModalData] = useState(null);
 
   useEffect(() => {
@@ -35,43 +36,6 @@ export default function PadelPrototype() {
 
   const handleSelectSlot = (field, slot) => {
     setModalData({ field, slot });
-  };
-
-  const handleConfirmBooking = async (
-    field,
-    slot,
-    duration,
-    transaction_id
-  ) => {
-    const startTime = slot;
-    const endTime = calculateEndTime(startTime, duration);
-
-    if (loading) return;
-    setLoading(true);
-    setMessage("");
-
-    try {
-      await createBooking({
-        field_id: field.id,
-        date: selectedDate,
-        slot,
-        end_slot: endTime,
-        total_price: duration * field.price_per_hour,
-        transaction_id: transaction_id,
-        status: "paid",
-      });
-      setMessage(
-        `✅ Booking untuk ${field.name} pada jam ${slot} hingga ${endTime} berhasil dibuat!`
-      );
-
-      await refreshBookings();
-      setModalData(null);
-    } catch (error) {
-      console.error("Booking error:", error);
-      setMessage("❌ Gagal membuat booking.");
-    } finally {
-      setLoading(false);
-    }
   };
 
   return (
