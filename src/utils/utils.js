@@ -39,12 +39,12 @@ export const generateSlots = () => {
   return s;
 };
 
-export const isSlotBooked = (bookings, fieldId, date, slot) => {
+export const isSlotBooked = (bookings, fieldId, date, slot, statusList) => {
   return bookings.some(
     (b) =>
       b.field_id === fieldId &&
       b.date === date &&
       b.slot === slot &&
-      b.status === "paid"
+      statusList.includes(b.status)
   );
 };

@@ -1,8 +1,16 @@
 import React, { useState } from "react";
 
 import { calculateEndTime } from "@/utils/utils";
+import { useBookingLogic } from "@/hooks/useBookingLogic";
 
-export default function BookingModal({ field, slot, onClose, onConfirm }) {
+export default function BookingModal({
+  field,
+  slot,
+  selectedDate,
+  refreshBookings,
+  onClose,
+  onConfirm,
+}) {
   const [endSlot, setEndSlot] = useState(1);
 
   const endTime = calculateEndTime(slot, endSlot);
@@ -14,7 +22,22 @@ export default function BookingModal({ field, slot, onClose, onConfirm }) {
     }).format(number);
   };
 
+  const { handleConfirmBooking, handlePaymentSuccess } = useBookingLogic(
+    selectedDate,
+    refreshBookings
+  );
+
   const checkout = async (field, slot, endSlot) => {
+    // Buat pending booking dulu
+    const bookingData = await handleConfirmBooking(field, slot, endSlot);
+
+    if (!bookingData) {
+      alert("Gagal membuat booking pending.");
+      return;
+    }
+
+    const bookingId = bookingData.id;
+
     const data = {
       id: field?.id,
       productName: slot,
@@ -22,44 +45,36 @@ export default function BookingModal({ field, slot, onClose, onConfirm }) {
       quantity: endSlot,
     };
 
-    const response = await fetch("/api/token", {
+    const response = await fetch("/api/midtrans/token", {
       method: "POST",
       body: JSON.stringify(data),
     });
 
     const requestData = await response.json();
+
     if (window.snap && requestData.token) {
       window.snap.pay(requestData.token, {
-        // Callback saat pembayaran SUKSES
-        onSuccess: function (result) {
+        onSuccess: async function (result) {
           console.log("Payment success:", result);
+          console.log("Booking ID:", bookingId);
 
-          // 1. Panggil prop onConfirm dari parent component
-          // Kirim semua data booking yang dibutuhkan ke DB
-          onConfirm(field, slot, endSlot, result.transaction_id);
+          // ✅ Update booking jadi paid + isi transaction_id
+          await handlePaymentSuccess(bookingId, result.transaction_id);
 
-          // 2. Tutup modal booking
+          alert("Pembayaran berhasil!");
           onClose();
         },
-        // Callback saat pembayaran PENDING (misalnya menunggu transfer bank)
         onPending: function (result) {
           console.log("Payment pending:", result);
-          alert(
-            "Pembayaran Anda sedang diproses. Status: Pending. Cek status berkala."
-          );
-          // Biasanya, modal ditutup atau diarahkan ke halaman status pending
+          alert("Pembayaran Anda sedang diproses. Status: Pending.");
           onClose();
         },
-        // Callback saat pembayaran GAGAL atau ada error
         onError: function (result) {
           console.error("Payment error:", result);
-          alert("Pembayaran gagal. Silakan coba lagi.");
-          // Biarkan modal tetap terbuka untuk dicoba lagi
+          alert("Pembayaran gagal.");
         },
-        // Callback saat pengguna menutup modal Midtrans Snap
         onClose: function () {
-          console.log("Payment popup closed without finishing the transaction");
-          // Tidak perlu melakukan apa-apa atau berikan feedback ke user
+          console.log("Payment popup closed.");
         },
       });
     } else {

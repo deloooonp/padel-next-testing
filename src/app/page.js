@@ -96,20 +96,39 @@ export default function PadelPrototype() {
                     bookings,
                     field.id,
                     selectedDate,
-                    s.value
+                    s.value,
+                    ["paid"]
                   );
+                  const pending = isSlotBooked(
+                    bookings,
+                    field.id,
+                    selectedDate,
+                    s.value,
+                    ["pending"]
+                  );
+
+                  let buttonStyle = "";
+                  let label = s.label;
+
+                  if (booked) {
+                    buttonStyle = "bg-red-700 text-white cursor-not-allowed";
+                    label = "Booked";
+                  } else if (pending) {
+                    buttonStyle = "bg-yellow-600 text-white cursor-not-allowed";
+                    label = "Pending";
+                  } else {
+                    buttonStyle =
+                      "bg-green-700 hover:bg-green-600 text-white active:bg-green-700 focus:outline-2 focus:outline-offset-2 focus:outline-green-500";
+                  }
+
                   return (
                     <button
                       key={s.value}
                       onClick={() => handleSelectSlot(field, s.value)}
-                      className={`text-sm p-2 rounded transition-colors duration-150 ${
-                        booked
-                          ? "bg-red-700 text-white cursor-not-allowed"
-                          : "bg-green-700 hover:bg-green-600 text-white active:bg-green-700 focus:outline-2 focus:outline-offset-2 focus:outline-green-500"
-                      }`}
-                      disabled={booked || loading}
+                      className={`text-sm p-2 rounded transition-colors duration-150 ${buttonStyle}`}
+                      disabled={booked || pending || loading}
                     >
-                      {booked ? "Booked" : s.label}
+                      {label}
                     </button>
                   );
                 })}
@@ -123,6 +142,8 @@ export default function PadelPrototype() {
         <BookingModal
           field={modalData.field}
           slot={modalData.slot}
+          selectedDate={selectedDate}
+          refreshBookings={refreshBookings}
           onClose={() => setModalData(null)}
           onConfirm={handleConfirmBooking}
         />

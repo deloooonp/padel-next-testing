@@ -32,19 +32,22 @@ export async function createBooking({
   total_price,
   transaction_id,
 }) {
-  const { data, error } = await supabase.from("bookings").insert([
-    {
-      field_id,
-      date,
-      slot,
-      end_slot,
-      status,
-      total_price,
-      transaction_id,
-    },
-  ]);
+  const { data, error } = await supabase
+    .from("bookings")
+    .insert([
+      {
+        field_id,
+        date,
+        slot,
+        end_slot,
+        status,
+        total_price,
+        transaction_id,
+      },
+    ])
+    .select();
   console.log("RAW insert result:", { data, error });
-
+  ``;
   if (error) {
     console.error(
       "Full Supabase error dump:",
@@ -52,5 +55,39 @@ export async function createBooking({
     );
     throw error;
   }
+  return { data, error };
+}
+
+export async function updateBookingStatus(id, status, transaction_id) {
+  console.log("🟡 RUNNING updateBookingStatus:", {
+    id,
+    status,
+    transaction_id,
+  });
+
+  const query = supabase
+    .from("bookings")
+    .update({ status, transaction_id })
+    .eq("id", id)
+    .select("*");
+
+  console.log("🟢 RAW QUERY OBJECT:", query);
+
+  const { data, error } = await query;
+
+  console.log("🔵 SUPABASE RESPONSE:", { data, error });
+
+  if (error) {
+    console.error("❌ SUPABASE UPDATE ERROR:", error);
+    throw new Error(error.message || "Unknown Supabase error");
+  }
+
+  if (!data || data.length === 0) {
+    console.warn(
+      "⚠️ No rows updated — kemungkinan id tidak cocok atau RLS aktif"
+    );
+  }
+
+  console.log("✅ SUPABASE UPDATE SUCCESS:", data);
   return data;
 }
