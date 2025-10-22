@@ -1,6 +1,5 @@
 export const calculateEndTime = (startTime, duration) => {
   if (!startTime || typeof duration !== "number" || duration <= 0) {
-    // Mengembalikan waktu mulai jika input tidak valid
     return startTime;
   }
 
@@ -26,4 +25,26 @@ export const calculateEndTime = (startTime, duration) => {
     console.error("Error calculating end time:", e);
     return startTime;
   }
+};
+
+export const generateSlots = () => {
+  const s = [];
+  for (let h = 10; h <= 21; h++) {
+    const hh = String(h).padStart(2, "0");
+    s.push({
+      label: `${hh}:00 - ${String(h + 1).padStart(2, "0")}:00`,
+      value: `${hh}:00`,
+    });
+  }
+  return s;
+};
+
+export const isSlotBooked = (bookings, fieldId, date, slot) => {
+  return bookings.some(
+    (b) =>
+      b.field_id === fieldId &&
+      b.date === date &&
+      b.slot === slot &&
+      b.status === "paid"
+  );
 };

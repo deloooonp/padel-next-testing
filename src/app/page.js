@@ -1,64 +1,37 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  getFields,
-  getBookingsByDate,
-  createBooking,
-} from "@/lib/supabaseClient";
+import { createBooking } from "../lib/supabaseClient";
+import BookingModal from "../components/BookingModal";
+import { calculateEndTime, generateSlots, isSlotBooked } from "@/utils/utils";
+import { usePadelData } from "@/hooks/usePadelData";
 
-import BookingModal from "@/components/BookingModal";
-import { calculateEndTime } from "@/utils/utils";
+const slots = generateSlots();
 
 export default function PadelPrototype() {
-  const [selectedDate, setSelectedDate] = useState(() =>
-    new Date().toISOString().slice(0, 10)
-  );
-  const [fields, setFields] = useState([]);
-  const [slots, setSlots] = useState([]);
-  const [bookings, setBookings] = useState([]);
+  const { fields, bookings, selectedDate, setSelectedDate, refreshBookings } =
+    usePadelData();
+
+  // State yang berhubungan dengan UI
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [modalData, setModalData] = useState(null);
 
   useEffect(() => {
-    const generateSlots = () => {
-      const s = [];
-      for (let h = 10; h <= 21; h++) {
-        const hh = String(h).padStart(2, "0");
-        s.push({
-          label: `${hh}:00 - ${String(h + 1).padStart(2, "0")}:00`,
-          value: `${hh}:00`,
-        });
-      }
-      return s;
+    const snapScript = "https://app.sandbox.midtrans.com/snap/snap.js";
+    const clientKey = process.env.NEXT_PUBLIC_CLIENT;
+
+    const script = document.createElement("script");
+    script.src = snapScript;
+    script.setAttribute("data-client-key", clientKey);
+    script.async = true;
+
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
     };
-    setSlots(generateSlots());
   }, []);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const fieldData = await getFields();
-        const bookingData = await getBookingsByDate(selectedDate);
-        setFields(fieldData || []);
-        setBookings(bookingData || []);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    };
-    fetchData();
-  }, [selectedDate]);
-
-  const isSlotBooked = (fieldId, date, slot) => {
-    return bookings.some(
-      (b) =>
-        b.field_id === fieldId &&
-        b.date === date &&
-        b.slot === slot &&
-        b.status === "paid"
-    );
-  };
 
   const handleSelectSlot = (field, slot) => {
     setModalData({ field, slot });
@@ -90,8 +63,8 @@ export default function PadelPrototype() {
       setMessage(
         `✅ Booking untuk ${field.name} pada jam ${slot} hingga ${endTime} berhasil dibuat!`
       );
-      const bookingData = await getBookingsByDate(selectedDate);
-      setBookings(bookingData || []);
+
+      await refreshBookings();
       setModalData(null);
     } catch (error) {
       console.error("Booking error:", error);
@@ -100,22 +73,6 @@ export default function PadelPrototype() {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    const snapScript = "https://app.sandbox.midtrans.com/snap/snap.js";
-    const clientKey = process.env.NEXT_PUBLIC_CLIENT;
-
-    const script = document.createElement("script");
-    script.src = snapScript;
-    script.setAttribute("data-client-key", clientKey);
-    script.async = true;
-
-    document.body.appendChild(script);
-
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, []);
 
   return (
     <main className="min-h-screen bg-gray-900 text-white p-6">
@@ -160,8 +117,10 @@ export default function PadelPrototype() {
                   </div>
                 </div>
                 <button
-                  className="px-3 py-1 bg-gray-700 text-white rounded"
-                  onClick={() => alert("Field details placeholder")}
+                  className="px-3 py-1 bg-gray-700 text-white rounded cursor-pointer"
+                  onClick={() =>
+                    alert(`Menampilkan detail untuk ${field.name}`)
+                  }
                 >
                   Detail
                 </button>
@@ -169,7 +128,12 @@ export default function PadelPrototype() {
 
               <div className="mt-4 grid grid-cols-4 gap-2">
                 {slots.map((s) => {
-                  const booked = isSlotBooked(field.id, selectedDate, s.value);
+                  const booked = isSlotBooked(
+                    bookings,
+                    field.id,
+                    selectedDate,
+                    s.value
+                  );
                   return (
                     <button
                       key={s.value}
