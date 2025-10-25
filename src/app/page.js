@@ -9,12 +9,14 @@ import { useBookingLogic } from "@/hooks/useBookingLogic";
 const slots = generateSlots();
 
 export default function PadelPrototype() {
-  const { fields, bookings, selectedDate, setSelectedDate } = usePadelData();
+  const dateOptions = getBookingDays();
+  const todayDateString = dateOptions[0].dateString;
+
+  const { fields, bookings, selectedDate, setSelectedDate } =
+    usePadelData(todayDateString);
 
   const { loading, message, setMessage, handleConfirmBooking } =
     useBookingLogic(selectedDate);
-
-  const dateOptions = getBookingDays();
 
   // State yang berhubungan dengan UI
   const [modalData, setModalData] = useState(null);

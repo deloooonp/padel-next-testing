@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { getFields, getBookingsByDate, supabase } from "@/lib/supabaseClient";
 
-export function usePadelData() {
-  const [selectedDate, setSelectedDate] = useState(() =>
-    new Date().toISOString().slice(0, 10)
-  );
+export function usePadelData(defaultDate = null) {
+  const todayDefault = new Date().toISOString().slice(0, 10);
+
+  const [selectedDate, setSelectedDate] = useState(defaultDate || todayDefault);
   const [fields, setFields] = useState([]);
   const [bookings, setBookings] = useState([]);
   const channelRef = useRef(null);
