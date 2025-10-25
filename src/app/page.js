@@ -142,6 +142,7 @@ export default function PadelPrototype() {
           field={modalData.field}
           slot={modalData.slot}
           selectedDate={selectedDate}
+          bookings={bookings}
           onClose={() => setModalData(null)}
           onConfirm={handleConfirmBooking}
         />

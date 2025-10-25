@@ -1,33 +1,57 @@
-import React, { useState } from "react";
-
-import { calculateEndTime } from "@/utils/utils";
+import React, { useState, useEffect } from "react";
+import {
+  calculateEndTime,
+  isSlotOverlap,
+  isTimeBeyondLimit,
+} from "@/utils/utils";
 import { useBookingLogic } from "@/hooks/useBookingLogic";
 
 export default function BookingModal({
   field,
   slot,
   selectedDate,
+  bookings,
   onClose,
   onConfirm,
 }) {
   const [endSlot, setEndSlot] = useState(1);
+  const [isOverlap, setIsOverlap] = useState(false);
+  const [isBeyondLimit, setIsBeyondLimit] = useState(false);
 
   const endTime = calculateEndTime(slot, endSlot);
-
-  const rupiah = (number) => {
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-    }).format(number);
-  };
 
   const { handleConfirmBooking, handlePaymentSuccess } =
     useBookingLogic(selectedDate);
 
-  const checkout = async (field, slot, endSlot) => {
-    // Buat pending booking dulu
-    const bookingData = await handleConfirmBooking(field, slot, endSlot);
+  // useEffect(() => {
+  //   const beyond = isTimeBeyondLimit(endTime, 22);
+  //   setIsBeyondLimit(beyond);
+  // }, [endTime]);
 
+  const checkout = async () => {
+    const overlap = isSlotOverlap(
+      bookings,
+      field.id,
+      selectedDate,
+      slot,
+      endTime,
+      [("paid", "pending")]
+    );
+
+    if (overlap) {
+      setIsOverlap(true);
+      return;
+    }
+
+    if (isTimeBeyondLimit(endTime, 22)) {
+      setIsBeyondLimit(true);
+      return;
+    }
+
+    setIsBeyondLimit(false);
+    setIsOverlap(false);
+
+    const bookingData = await handleConfirmBooking(field, slot, endSlot);
     if (!bookingData) {
       alert("Gagal membuat booking pending.");
       return;
@@ -46,7 +70,6 @@ export default function BookingModal({
       method: "POST",
       body: JSON.stringify(data),
     });
-
     const requestData = await response.json();
 
     if (window.snap && requestData.token) {
@@ -76,6 +99,12 @@ export default function BookingModal({
       alert("Gagal memuat pembayaran.");
     }
   };
+
+  const rupiah = (number) =>
+    new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+    }).format(number);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
@@ -107,6 +136,18 @@ export default function BookingModal({
           </select>
         </div>
 
+        {isOverlap && (
+          <p className="text-red-500 mb-2">
+            Slot tumpang tindih dengan booking lain!
+          </p>
+        )}
+
+        {isBeyondLimit && (
+          <p className="text-red-500 mb-2">
+            Waktu booking melebihi batas operasional (maksimal 22:00).
+          </p>
+        )}
+
         <div className="flex justify-between mt-6">
           <button
             className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded cursor-pointer"
@@ -116,7 +157,7 @@ export default function BookingModal({
           </button>
           <button
             className="bg-green-700 hover:bg-green-600 text-white px-4 py-2 rounded cursor-pointer"
-            onClick={() => checkout(field, slot, endSlot)}
+            onClick={checkout}
           >
             Pay & Confirm
           </button>
