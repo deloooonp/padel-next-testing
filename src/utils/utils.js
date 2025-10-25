@@ -113,3 +113,52 @@ export const generateBlockedSlots = (slot, endSlot) => {
   }
   return blocked;
 };
+
+// Helper function untuk memformat tanggal menjadi YYYY-MM-DD
+const formatDate = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+// Fungsi utama yang menghitung dan mengembalikan data 7 hari
+export const getBookingDays = () => {
+  const days = ["MIN", "SEN", "SEL", "RAB", "KAM", "JUM", "SAB"]; // Nama hari untuk UI
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "Mei",
+    "Jun",
+    "Jul",
+    "Agu",
+    "Sep",
+    "Okt",
+    "Nov",
+    "Des",
+  ];
+
+  const dateList = [];
+  const today = new Date();
+
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(today);
+    date.setDate(today.getDate() + i); // Tambahkan hari ke-i
+
+    const dayName = days[date.getDay()];
+    const dateNumber = date.getDate();
+    const monthName = months[date.getMonth()];
+    const fullDateString = formatDate(date); // YYYY-MM-DD (untuk value)
+
+    dateList.push({
+      dateString: fullDateString,
+      dayNumber: dateNumber,
+      dayName: i === 0 ? "TODAY" : dayName, // Tampilkan 'TODAY' untuk hari pertama
+      monthName: monthName,
+    });
+  }
+
+  return dateList;
+};

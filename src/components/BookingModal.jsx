@@ -28,6 +28,18 @@ export default function BookingModal({
   //   setIsBeyondLimit(beyond);
   // }, [endTime]);
 
+  // useEffect(() => {
+  //   const overlap = isSlotOverlap(
+  //     bookings,
+  //     field.id,
+  //     selectedDate,
+  //     slot,
+  //     endTime,
+  //     ["paid", "pending"]
+  //   );
+  //   setIsOverlap(overlap);
+  // }, [endSlot, bookings, slot, field.id, selectedDate]);
+
   const checkout = async () => {
     const overlap = isSlotOverlap(
       bookings,
@@ -38,17 +50,16 @@ export default function BookingModal({
       [("paid", "pending")]
     );
 
-    if (overlap) {
-      setIsOverlap(true);
-      return;
-    }
-
     if (isTimeBeyondLimit(endTime, 22)) {
       setIsBeyondLimit(true);
       return;
     }
-
     setIsBeyondLimit(false);
+
+    if (overlap) {
+      setIsOverlap(true);
+      return;
+    }
     setIsOverlap(false);
 
     const bookingData = await handleConfirmBooking(field, slot, endSlot);
@@ -138,7 +149,7 @@ export default function BookingModal({
 
         {isOverlap && (
           <p className="text-red-500 mb-2">
-            Slot tumpang tindih dengan booking lain!
+            Jam ini bentrok dengan jadwal lain. Coba durasi atau slot berbeda.
           </p>
         )}
 

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import BookingModal from "@/components/BookingModal";
-import { generateSlots, isSlotBooked } from "@/utils/utils";
+import { generateSlots, isSlotBooked, getBookingDays } from "@/utils/utils";
 import { usePadelData } from "@/hooks/usePadelData";
 import { useBookingLogic } from "@/hooks/useBookingLogic";
 
@@ -13,6 +13,8 @@ export default function PadelPrototype() {
 
   const { loading, message, setMessage, handleConfirmBooking } =
     useBookingLogic(selectedDate);
+
+  const dateOptions = getBookingDays();
 
   // State yang berhubungan dengan UI
   const [modalData, setModalData] = useState(null);
@@ -47,15 +49,33 @@ export default function PadelPrototype() {
         </header>
 
         <section className="mb-6 bg-gray-800 p-4 rounded-2xl shadow-sm">
-          <label className="block text-sm font-medium text-gray-200">
+          <label className="block text-lg font-medium text-gray-200 mb-2">
             Pilih tanggal
           </label>
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="mt-2 p-2 border border-gray-600 bg-gray-900 text-white rounded w-48"
-          />
+          <div
+            className="flex space-x-2 overflow-x-auto pb-2 
+               md:grid md:grid-cols-7 md:gap-2 md:space-x-0"
+          >
+            {dateOptions.map((date, index) => (
+              <button
+                key={index}
+                onClick={() => setSelectedDate(date.dateString)}
+                className={`
+                flex-shrink-0 p-2 rounded-xl border transition-all duration-200 w-20 md:w-auto grid text-center cursor-pointer
+                ${
+                  selectedDate === date.dateString
+                    ? "bg-blue-700 border-blue-700 text-white" // Gaya saat terpilih
+                    : "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" // Gaya saat tidak terpilih
+                }
+              `}
+              >
+                <span className="block font-semibold text-lg">
+                  {date.dayNumber} {date.monthName}
+                </span>
+                <span className="block text-sm ">{date.dayName}</span>
+              </button>
+            ))}
+          </div>
         </section>
 
         {message && (
