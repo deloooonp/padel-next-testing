@@ -7,7 +7,6 @@ export default function BookingModal({
   field,
   slot,
   selectedDate,
-  refreshBookings,
   onClose,
   onConfirm,
 }) {
@@ -22,10 +21,8 @@ export default function BookingModal({
     }).format(number);
   };
 
-  const { handleConfirmBooking, handlePaymentSuccess } = useBookingLogic(
-    selectedDate,
-    refreshBookings
-  );
+  const { handleConfirmBooking, handlePaymentSuccess } =
+    useBookingLogic(selectedDate);
 
   const checkout = async (field, slot, endSlot) => {
     // Buat pending booking dulu

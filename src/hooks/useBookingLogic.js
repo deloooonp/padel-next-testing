@@ -4,7 +4,7 @@ import { useState } from "react";
 import { createBooking, updateBookingStatus } from "@/lib/supabaseClient";
 import { calculateEndTime } from "@/utils/utils";
 
-export function useBookingLogic(selectedDate, refreshBookings) {
+export function useBookingLogic(selectedDate) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -41,7 +41,6 @@ export function useBookingLogic(selectedDate, refreshBookings) {
   const handlePaymentSuccess = async (bookingId, transaction_id) => {
     try {
       await updateBookingStatus(bookingId, "paid", transaction_id);
-      if (typeof refreshBookings === "function") await refreshBookings();
       setMessage("✅ Pembayaran berhasil!");
     } catch (error) {
       console.error("Update booking status error:", error);
