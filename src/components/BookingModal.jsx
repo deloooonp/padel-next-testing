@@ -58,10 +58,8 @@ export default function BookingModal({
           console.log("Payment success:", result);
           console.log("Booking ID:", bookingId);
 
-          // ✅ Update booking jadi paid + isi transaction_id
           await handlePaymentSuccess(bookingId, result.transaction_id);
 
-          alert("Pembayaran berhasil!");
           onClose();
         },
         onPending: function (result) {
@@ -102,7 +100,7 @@ export default function BookingModal({
           <select
             value={endSlot}
             onChange={(e) => setEndSlot(Number(e.target.value))}
-            className="w-full p-2 rounded bg-gray-900 text-white border border-gray-600"
+            className="w-full p-2 rounded bg-gray-900 text-white border border-gray-600 cursor-pointer"
           >
             {[1, 2, 3, 4].map((h) => (
               <option key={h} value={h}>
@@ -114,13 +112,13 @@ export default function BookingModal({
 
         <div className="flex justify-between mt-6">
           <button
-            className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded"
+            className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded cursor-pointer"
             onClick={onClose}
           >
             Cancel
           </button>
           <button
-            className="bg-green-700 hover:bg-green-600 text-white px-4 py-2 rounded"
+            className="bg-green-700 hover:bg-green-600 text-white px-4 py-2 rounded cursor-pointer"
             onClick={() => checkout(field, slot, endSlot)}
           >
             Pay & Confirm

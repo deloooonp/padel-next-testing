@@ -17,7 +17,6 @@ export function useBookingLogic(selectedDate, refreshBookings) {
     setMessage("");
 
     try {
-      // Buat booking baru -> status pending
       const { data, error } = await createBooking({
         field_id: field.id,
         date: selectedDate,
@@ -29,8 +28,6 @@ export function useBookingLogic(selectedDate, refreshBookings) {
       });
 
       if (error) throw error;
-
-      // Balikin ID booking ke komponen yang manggil
       return data?.[0] || null;
     } catch (error) {
       console.error("Booking error:", error);
@@ -45,8 +42,10 @@ export function useBookingLogic(selectedDate, refreshBookings) {
     try {
       await updateBookingStatus(bookingId, "paid", transaction_id);
       if (typeof refreshBookings === "function") await refreshBookings();
+      setMessage("✅ Pembayaran berhasil!");
     } catch (error) {
       console.error("Update booking status error:", error);
+      setMessage("❌ Gagal memperbarui status booking.");
     }
   };
 
