@@ -17,97 +17,85 @@ export default function BookingModal({
   const [endSlot, setEndSlot] = useState(1);
   const [isOverlap, setIsOverlap] = useState(false);
   const [isBeyondLimit, setIsBeyondLimit] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const endTime = calculateEndTime(slot, endSlot);
 
   const { handleConfirmBooking, handlePaymentSuccess } =
     useBookingLogic(selectedDate);
 
-  // useEffect(() => {
-  //   const beyond = isTimeBeyondLimit(endTime, 22);
-  //   setIsBeyondLimit(beyond);
-  // }, [endTime]);
+  useEffect(() => {
+    const beyond = isTimeBeyondLimit(endTime, 22);
+    setIsBeyondLimit(beyond);
+  }, [endTime]);
 
-  // useEffect(() => {
-  //   const overlap = isSlotOverlap(
-  //     bookings,
-  //     field.id,
-  //     selectedDate,
-  //     slot,
-  //     endTime,
-  //     ["paid", "pending"]
-  //   );
-  //   setIsOverlap(overlap);
-  // }, [endSlot, bookings, slot, field.id, selectedDate]);
-
-  const checkout = async () => {
+  useEffect(() => {
     const overlap = isSlotOverlap(
       bookings,
       field.id,
       selectedDate,
       slot,
       endTime,
-      [("paid", "pending")]
+      ["paid", "pending"]
     );
+    setIsOverlap(overlap);
+  }, [endSlot, bookings, slot, field.id, selectedDate]);
 
-    if (isTimeBeyondLimit(endTime, 22)) {
-      setIsBeyondLimit(true);
-      return;
-    }
-    setIsBeyondLimit(false);
+  const checkout = async () => {
+    try {
+      setIsProcessing(true);
 
-    if (overlap) {
-      setIsOverlap(true);
-      return;
-    }
-    setIsOverlap(false);
+      const bookingData = await handleConfirmBooking(field, slot, endSlot);
+      if (!bookingData) {
+        alert("Gagal membuat booking pending.");
+        return;
+      }
 
-    const bookingData = await handleConfirmBooking(field, slot, endSlot);
-    if (!bookingData) {
-      alert("Gagal membuat booking pending.");
-      return;
-    }
+      const bookingId = bookingData.id;
 
-    const bookingId = bookingData.id;
+      const data = {
+        id: field?.id,
+        productName: slot,
+        price: field?.price_per_hour,
+        quantity: endSlot,
+      };
 
-    const data = {
-      id: field?.id,
-      productName: slot,
-      price: field?.price_per_hour,
-      quantity: endSlot,
-    };
-
-    const response = await fetch("/api/midtrans/token", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-    const requestData = await response.json();
-
-    if (window.snap && requestData.token) {
-      window.snap.pay(requestData.token, {
-        onSuccess: async function (result) {
-          console.log("Payment success:", result);
-          console.log("Booking ID:", bookingId);
-
-          await handlePaymentSuccess(bookingId, result.transaction_id);
-
-          onClose();
-        },
-        onPending: function (result) {
-          console.log("Payment pending:", result);
-          alert("Pembayaran Anda sedang diproses. Status: Pending.");
-          onClose();
-        },
-        onError: function (result) {
-          console.error("Payment error:", result);
-          alert("Pembayaran gagal.");
-        },
-        onClose: function () {
-          console.log("Payment popup closed.");
-        },
+      const response = await fetch("/api/midtrans/token", {
+        method: "POST",
+        body: JSON.stringify(data),
       });
-    } else {
-      alert("Gagal memuat pembayaran.");
+      const requestData = await response.json();
+
+      if (window.snap && requestData.token) {
+        setIsProcessing(false);
+        window.snap.pay(requestData.token, {
+          onSuccess: async function (result) {
+            console.log("Payment success:", result);
+            console.log("Booking ID:", bookingId);
+
+            await handlePaymentSuccess(bookingId, result.transaction_id);
+
+            onClose();
+          },
+          onPending: function (result) {
+            console.log("Payment pending:", result);
+            alert("Pembayaran Anda sedang diproses. Status: Pending.");
+            onClose();
+          },
+          onError: function (result) {
+            console.error("Payment error:", result);
+            alert("Pembayaran gagal.");
+          },
+          onClose: function () {
+            console.log("Payment popup closed.");
+          },
+        });
+      } else {
+        alert("Gagal memuat pembayaran.");
+      }
+    } catch (error) {
+      console.error(error);
+      setIsProcessing(false);
     }
   };
 
@@ -117,8 +105,19 @@ export default function BookingModal({
       currency: "IDR",
     }).format(number);
 
+  const isDisabled = isOverlap || isBeyondLimit || isProcessing;
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+      {isProcessing && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-2xl shadow-lg text-center">
+            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+            <p className="text-gray-700">Menyiapkan pembayaran...</p>
+          </div>
+        </div>
+      )}
+
       <div className="bg-gray-800 p-6 rounded-2xl shadow-xl w-96">
         <h2 className="text-xl font-semibold mb-4 text-white">
           Konfirmasi Booking
@@ -147,15 +146,11 @@ export default function BookingModal({
           </select>
         </div>
 
-        {isOverlap && (
+        {(isOverlap || isBeyondLimit) && (
           <p className="text-red-500 mb-2">
-            Jam ini bentrok dengan jadwal lain. Coba durasi atau slot berbeda.
-          </p>
-        )}
-
-        {isBeyondLimit && (
-          <p className="text-red-500 mb-2">
-            Waktu booking melebihi batas operasional (maksimal 22:00).
+            {isOverlap
+              ? "Jam ini sudah dibooking, coba slot lain."
+              : "Waktu booking melebihi batas operasional (maks 22:00)."}
           </p>
         )}
 
@@ -167,10 +162,19 @@ export default function BookingModal({
             Cancel
           </button>
           <button
-            className="bg-green-700 hover:bg-green-600 text-white px-4 py-2 rounded cursor-pointer"
+            disabled={isDisabled}
+            className={`text-white px-4 py-2 rounded transition-colors ${
+              isDisabled
+                ? "bg-red-900 cursor-not-allowed"
+                : "bg-green-700 hover:bg-green-600 cursor-pointer"
+            }`}
             onClick={checkout}
           >
-            Pay & Confirm
+            {isOverlap
+              ? "Booked"
+              : isProcessing
+              ? "Processing..."
+              : "Pay & Confirm"}
           </button>
         </div>
       </div>

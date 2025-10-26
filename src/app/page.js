@@ -167,6 +167,7 @@ export default function PadelPrototype() {
           bookings={bookings}
           onClose={() => setModalData(null)}
           onConfirm={handleConfirmBooking}
+          loading={loading}
         />
       )}
     </main>
