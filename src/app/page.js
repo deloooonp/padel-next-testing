@@ -5,6 +5,7 @@ import BookingModal from "@/components/BookingModal";
 import { generateSlots, isSlotBooked, getBookingDays } from "@/utils/utils";
 import { usePadelData } from "@/hooks/usePadelData";
 import { useBookingLogic } from "@/hooks/useBookingLogic";
+import SkeletonGrid from "@/components/SkeletonGrid";
 
 const slots = generateSlots();
 
@@ -12,7 +13,7 @@ export default function PadelPrototype() {
   const dateOptions = getBookingDays();
   const todayDateString = dateOptions[0].dateString;
 
-  const { fields, bookings, selectedDate, setSelectedDate } =
+  const { fields, bookings, selectedDate, setSelectedDate, isLoading } =
     usePadelData(todayDateString);
 
   const { loading, message, setMessage, handleConfirmBooking } =
@@ -20,6 +21,16 @@ export default function PadelPrototype() {
 
   // State yang berhubungan dengan UI
   const [modalData, setModalData] = useState(null);
+  const [showData, setShowData] = useState(false);
+
+  useEffect(() => {
+    if (!isLoading) {
+      const timeout = setTimeout(() => setShowData(true), 200);
+      return () => clearTimeout(timeout);
+    } else {
+      setShowData(false);
+    }
+  }, [isLoading]);
 
   useEffect(() => {
     const snapScript = "https://app.sandbox.midtrans.com/snap/snap.js";
@@ -87,75 +98,80 @@ export default function PadelPrototype() {
         )}
 
         <section className="grid gap-4">
-          {fields.map((field) => (
-            <article
-              key={field.id}
-              className="bg-gray-800 p-4 rounded-2xl shadow-sm"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-medium text-white">
-                    {field.name}
-                  </h2>
-                  <div className="text-sm text-gray-400">
-                    Rp {field.price_per_hour.toLocaleString()} / jam
+          {!showData ? (
+            <SkeletonGrid />
+          ) : (
+            fields.map((field) => (
+              <article
+                key={field.id}
+                className="bg-gray-800 p-4 rounded-2xl shadow-sm"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-medium text-white">
+                      {field.name}
+                    </h2>
+                    <div className="text-sm text-gray-400">
+                      Rp {field.price_per_hour.toLocaleString()} / jam
+                    </div>
                   </div>
+                  <button
+                    className="px-3 py-1 bg-gray-700 text-white rounded cursor-pointer"
+                    onClick={() =>
+                      alert(`Menampilkan detail untuk ${field.name}`)
+                    }
+                  >
+                    Detail
+                  </button>
                 </div>
-                <button
-                  className="px-3 py-1 bg-gray-700 text-white rounded cursor-pointer"
-                  onClick={() =>
-                    alert(`Menampilkan detail untuk ${field.name}`)
-                  }
-                >
-                  Detail
-                </button>
-              </div>
 
-              <div className="mt-4 grid grid-cols-4 gap-2">
-                {slots.map((s) => {
-                  const booked = isSlotBooked(
-                    bookings,
-                    field.id,
-                    selectedDate,
-                    s.value,
-                    ["paid"]
-                  );
-                  const pending = isSlotBooked(
-                    bookings,
-                    field.id,
-                    selectedDate,
-                    s.value,
-                    ["pending"]
-                  );
+                <div className="mt-4 grid grid-cols-4 gap-2">
+                  {slots.map((s) => {
+                    const booked = isSlotBooked(
+                      bookings,
+                      field.id,
+                      selectedDate,
+                      s.value,
+                      ["paid"]
+                    );
+                    const pending = isSlotBooked(
+                      bookings,
+                      field.id,
+                      selectedDate,
+                      s.value,
+                      ["pending"]
+                    );
 
-                  let buttonStyle = "";
-                  let label = s.label;
+                    let buttonStyle = "";
+                    let label = s.label;
 
-                  if (booked) {
-                    buttonStyle = "bg-red-700 text-white cursor-not-allowed";
-                    label = "Booked";
-                  } else if (pending) {
-                    buttonStyle = "bg-yellow-600 text-white cursor-not-allowed";
-                    label = "Pending";
-                  } else {
-                    buttonStyle =
-                      "bg-green-700 hover:bg-green-600 text-white active:bg-green-700 focus:outline-2 focus:outline-offset-2 focus:outline-green-500";
-                  }
+                    if (booked) {
+                      buttonStyle = "bg-red-700 text-white cursor-not-allowed";
+                      label = "Booked";
+                    } else if (pending) {
+                      buttonStyle =
+                        "bg-yellow-600 text-white cursor-not-allowed";
+                      label = "Pending";
+                    } else {
+                      buttonStyle =
+                        "bg-green-700 hover:bg-green-600 text-white active:bg-green-700 focus:outline-2 focus:outline-offset-2 focus:outline-green-500";
+                    }
 
-                  return (
-                    <button
-                      key={s.value}
-                      onClick={() => handleSelectSlot(field, s.value)}
-                      className={`text-sm p-2 rounded transition-colors duration-150 ${buttonStyle}`}
-                      disabled={booked || pending || loading}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
-            </article>
-          ))}
+                    return (
+                      <button
+                        key={s.value}
+                        onClick={() => handleSelectSlot(field, s.value)}
+                        className={`text-sm p-2 rounded transition-colors duration-150 ${buttonStyle}`}
+                        disabled={booked || pending || loading}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </article>
+            ))
+          )}
         </section>
       </div>
 
