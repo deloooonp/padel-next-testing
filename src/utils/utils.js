@@ -1,3 +1,4 @@
+// Menghitung waktu akhir dari durasi dan slot yang dipilih
 export const calculateEndTime = (startTime, duration) => {
   if (!startTime || typeof duration !== "number" || duration <= 0) {
     return startTime;
@@ -16,7 +17,6 @@ export const calculateEndTime = (startTime, duration) => {
     let endHour = startHour + Math.floor(totalMinutes / 60);
     let endMinute = totalMinutes % 60;
 
-    // Pastikan format HH:MM
     return `${String(endHour).padStart(2, "0")}:${String(endMinute).padStart(
       2,
       "0"
@@ -53,10 +53,11 @@ export const isSlotBooked = (bookings, fieldId, date, slot, statusList) => {
     const [endHour] = b.end_slot.split(":").map(Number);
     const [checkHour] = slot.split(":").map(Number);
 
-    return checkHour >= startHour && checkHour < endHour; // slot termasuk di range
+    return checkHour >= startHour && checkHour < endHour;
   });
 };
 
+// Cek apakah slot overlapping dengan slot lain
 export const isSlotOverlap = (
   bookings,
   fieldId,
@@ -79,7 +80,6 @@ export const isSlotOverlap = (
     const [bookStart] = b.slot.split(":").map(Number);
     const [bookEnd] = b.end_slot.split(":").map(Number);
 
-    // Overlap check
     return newStartHour < bookEnd && bookStart < newEndHour;
   });
 };
@@ -124,7 +124,7 @@ const formatDate = (date) => {
 
 // Fungsi utama yang menghitung dan mengembalikan data 7 hari
 export const getBookingDays = () => {
-  const days = ["MIN", "SEN", "SEL", "RAB", "KAM", "JUM", "SAB"]; // Nama hari untuk UI
+  const days = ["MIN", "SEN", "SEL", "RAB", "KAM", "JUM", "SAB"];
   const months = [
     "Jan",
     "Feb",
@@ -145,17 +145,17 @@ export const getBookingDays = () => {
 
   for (let i = 0; i < 7; i++) {
     const date = new Date(today);
-    date.setDate(today.getDate() + i); // Tambahkan hari ke-i
+    date.setDate(today.getDate() + i);
 
     const dayName = days[date.getDay()];
     const dateNumber = date.getDate();
     const monthName = months[date.getMonth()];
-    const fullDateString = formatDate(date); // YYYY-MM-DD (untuk value)
+    const fullDateString = formatDate(date);
 
     dateList.push({
       dateString: fullDateString,
       dayNumber: dateNumber,
-      dayName: i === 0 ? "TODAY" : dayName, // Tampilkan 'TODAY' untuk hari pertama
+      dayName: i === 0 ? "TODAY" : dayName,
       monthName: monthName,
     });
   }

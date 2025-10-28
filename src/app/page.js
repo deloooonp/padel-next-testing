@@ -19,7 +19,6 @@ export default function PadelPrototype() {
   const { loading, message, setMessage, handleConfirmBooking } =
     useBookingLogic(selectedDate);
 
-  // State yang berhubungan dengan UI
   const [modalData, setModalData] = useState(null);
   const [showData, setShowData] = useState(false);
 
@@ -77,8 +76,8 @@ export default function PadelPrototype() {
                 flex-shrink-0 p-2 rounded-xl border transition-all duration-200 w-20 md:w-auto grid text-center cursor-pointer
                 ${
                   selectedDate === date.dateString
-                    ? "bg-blue-700 border-blue-700 text-white" // Gaya saat terpilih
-                    : "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700" // Gaya saat tidak terpilih
+                    ? "bg-blue-700 border-blue-700 text-white"
+                    : "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700"
                 }
               `}
               >
