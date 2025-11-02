@@ -5,7 +5,6 @@ import { NextResponse } from "next/server";
 export async function POST(req: Request) {
   const body = await req.json();
 
-  console.log("📨 Midtrans webhook received:", JSON.stringify(body, null, 2));
   const {
     order_id,
     transaction_id,
