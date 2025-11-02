@@ -1,5 +1,6 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import Script from "next/script";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,6 +24,16 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        <Script
+          src={
+            process.env.NODE_ENV === "production"
+              ? "https://app.midtrans.com/snap/snap.js"
+              : "https://app.sandbox.midtrans.com/snap/snap.js"
+          }
+          data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY}
+          strategy="afterInteractive"
+        />
+        ;
       </body>
     </html>
   );

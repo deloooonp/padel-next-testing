@@ -37,22 +37,6 @@ export default function PadelPrototype() {
     }
   }, [isLoading]);
 
-  useEffect(() => {
-    const snapScript = "https://app.sandbox.midtrans.com/snap/snap.js";
-    const clientKey = process.env.NEXT_PUBLIC_CLIENT;
-
-    const script = document.createElement("script");
-    script.src = snapScript;
-    script.setAttribute("data-client-key", clientKey);
-    script.async = true;
-
-    document.body.appendChild(script);
-
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, []);
-
   const handleSelectSlot = (field, slot) => {
     setModalData({ field, slot });
   };
