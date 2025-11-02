@@ -4,7 +4,7 @@ import {
   isSlotOverlap,
   isTimeBeyondLimit,
 } from "@/utils/utils";
-import { useBookingLogic } from "@/hooks/useBookingLogic";
+import ButtonLoading from "./ButtonLoading";
 
 export default function BookingModal({
   field,
@@ -13,6 +13,7 @@ export default function BookingModal({
   bookings,
   onClose,
   onConfirm,
+  isLoading,
 }) {
   const [endSlot, setEndSlot] = useState(1);
   const [isOverlap, setIsOverlap] = useState(false);
@@ -20,9 +21,6 @@ export default function BookingModal({
   const [isProcessing, setIsProcessing] = useState(false);
 
   const endTime = calculateEndTime(slot, endSlot);
-
-  const { handleConfirmBooking, handlePaymentSuccess } =
-    useBookingLogic(selectedDate);
 
   useEffect(() => {
     const beyond = isTimeBeyondLimit(endTime, 22);
@@ -45,16 +43,17 @@ export default function BookingModal({
     try {
       setIsProcessing(true);
 
-      const bookingData = await handleConfirmBooking(field, slot, endSlot);
+      const bookingData = await onConfirm(field, slot, endSlot);
       if (!bookingData) {
-        alert("Gagal membuat booking pending.");
+        setIsProcessing(false);
+        onClose();
         return;
       }
 
-      const bookingId = bookingData.id;
+      const orderId = bookingData.order_id;
 
       const data = {
-        id: field?.id,
+        order_id: orderId,
         productName: slot,
         price: field?.price_per_hour,
         quantity: endSlot,
@@ -69,18 +68,13 @@ export default function BookingModal({
       if (window.snap && requestData.token) {
         setIsProcessing(false);
         window.snap.pay(requestData.token, {
-          onSuccess: async function (result) {
+          onSuccess: function (result) {
             console.log("Payment success:", result);
-            console.log("Booking ID:", bookingId);
-
-            await handlePaymentSuccess(bookingId, result.transaction_id);
-
             onClose();
           },
           onPending: function (result) {
             console.log("Payment pending:", result);
             alert("Pembayaran Anda sedang diproses. Status: Pending.");
-            onClose();
           },
           onError: function (result) {
             console.error("Payment error:", result);
@@ -105,18 +99,11 @@ export default function BookingModal({
       currency: "IDR",
     }).format(number);
 
-  const isDisabled = isOverlap || isBeyondLimit || isProcessing;
+  const isDisabled = isOverlap || isBeyondLimit || isProcessing || isLoading;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-      {isProcessing && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-2xl shadow-lg text-center">
-            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-            <p className="text-gray-700">Menyiapkan pembayaran...</p>
-          </div>
-        </div>
-      )}
+      {isProcessing && <ButtonLoading />}
 
       <div className="bg-gray-800 p-6 rounded-2xl shadow-xl w-96">
         <h2 className="text-xl font-semibold mb-4 text-white">

@@ -3,30 +3,55 @@ import { NextResponse } from "next/server";
 
 let snap = new Midtrans.Snap({
   isProduction: false,
-  serverKey: process.env.SECRET,
-  clientKey: process.env.NEXT_PUBLIC_CLIENT,
+  serverKey: process.env.MIDTRANS_SERVER_KEY,
+  clientKey: process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY,
 });
 
 export async function POST(request) {
-  const { id, productName, price, quantity } = await request.json();
+  const { order_id, productName, price, quantity } = await request.json();
 
   const totalAmount = price * quantity;
 
   let parameter = {
     item_details: [
       {
-        id: "FIELD-" + id, // Tambahkan ID unik untuk item
+        id: order_id,
         name: `Booking Lapangan ${productName} (${quantity} Jam)`,
-        price: price, // Harga per satuan (per jam)
-        quantity: quantity, // Durasi (jumlah jam)
+        price: price,
+        quantity: quantity,
         category: "Sewa Lapangan",
       },
     ],
     transaction_details: {
-      // Gunakan ID transaksi yang unik, bukan ID lapangan saja
-      order_id: `BOOKING-${Date.now()}-${id}`, // PERBAIKAN 2: Gross amount harus total keseluruhan
+      order_id,
       gross_amount: totalAmount,
-    }, // (Opsional) Tambahkan detail pelanggan // customer_details: { ... }
+    },
+    enabled_payments: [
+      "credit_card",
+      "cimb_clicks",
+      "bca_klikbca",
+      "bca_klikpay",
+      "bri_epay",
+      "echannel",
+      "permata_va",
+      "bca_va",
+      "bni_va",
+      "bri_va",
+      "cimb_va",
+      "other_va",
+      "gopay",
+      "indomaret",
+      "danamon_online",
+      // "akulaku",
+      "shopeepay",
+      // "kredivo",
+      "uob_ezpay",
+      "other_qris",
+    ],
+    page_expiry: {
+      duration: 5,
+      unit: "minutes",
+    },
   };
 
   try {

@@ -13,10 +13,16 @@ export default function PadelPrototype() {
   const dateOptions = getBookingDays();
   const todayDateString = dateOptions[0].dateString;
 
-  const { fields, bookings, selectedDate, setSelectedDate, isLoading } =
-    usePadelData(todayDateString);
+  const {
+    fields,
+    bookings,
+    selectedDate,
+    setSelectedDate,
+    isLoading,
+    realtimeStatus,
+  } = usePadelData(todayDateString);
 
-  const { loading, message, setMessage, handleConfirmBooking } =
+  const { loading, message, handleConfirmBooking } =
     useBookingLogic(selectedDate);
 
   const [modalData, setModalData] = useState(null);
@@ -58,6 +64,15 @@ export default function PadelPrototype() {
           <h1 className="text-2xl font-semibold text-white">
             Padel Booking — Supabase Connected
           </h1>
+          <div
+            className={
+              realtimeStatus === "SUBSCRIBED"
+                ? "text-green-500"
+                : "text-yellow-500"
+            }
+          >
+            {realtimeStatus === "SUBSCRIBED" ? "🟢 Live" : "🟡 Polling"}
+          </div>
         </header>
 
         <section className="mb-6 bg-gray-800 p-4 rounded-2xl shadow-sm">
@@ -138,7 +153,7 @@ export default function PadelPrototype() {
                       field.id,
                       selectedDate,
                       s.value,
-                      ["pending"]
+                      ["pending", "reserved"]
                     );
 
                     let buttonStyle = "";
@@ -182,7 +197,7 @@ export default function PadelPrototype() {
           bookings={bookings}
           onClose={() => setModalData(null)}
           onConfirm={handleConfirmBooking}
-          loading={loading}
+          isLoading={loading}
         />
       )}
     </main>

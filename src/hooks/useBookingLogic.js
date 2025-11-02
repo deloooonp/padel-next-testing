@@ -1,12 +1,20 @@
 "use client";
 
-import { useState } from "react";
-import { createBooking, updateBookingStatus } from "@/lib/supabaseClient";
+import { useState, useEffect } from "react";
+import { createBooking } from "@/lib/supabase/booking";
 import { calculateEndTime } from "@/utils/utils";
 
 export function useBookingLogic(selectedDate) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    if (!message) return;
+    const timer = setTimeout(() => {
+      setMessage("");
+    }, 10000);
+    return () => clearTimeout(timer);
+  }, [message]);
 
   const handleConfirmBooking = async (field, slot, duration) => {
     const startTime = slot;
@@ -17,18 +25,21 @@ export function useBookingLogic(selectedDate) {
     setMessage("");
 
     try {
-      const { data, error } = await createBooking({
+      const result = await createBooking({
         field_id: field.id,
         date: selectedDate,
         slot,
         end_slot: endTime,
         total_price: duration * field.price_per_hour,
-        transaction_id: null,
         status: "pending",
       });
 
-      if (error) throw error;
-      return data?.[0] || null;
+      if (result?.message) {
+        setMessage(result.message);
+        return null;
+      }
+
+      return result.data?.[0] || null;
     } catch (error) {
       console.error("Booking error:", error);
       setMessage("❌ Gagal membuat booking.");
@@ -38,21 +49,10 @@ export function useBookingLogic(selectedDate) {
     }
   };
 
-  const handlePaymentSuccess = async (bookingId, transaction_id) => {
-    try {
-      await updateBookingStatus(bookingId, "paid", transaction_id);
-      setMessage("✅ Pembayaran berhasil!");
-    } catch (error) {
-      console.error("Update booking status error:", error);
-      setMessage("❌ Gagal memperbarui status booking.");
-    }
-  };
-
   return {
     loading,
     message,
     setMessage,
     handleConfirmBooking,
-    handlePaymentSuccess,
   };
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { getFields, getBookingsByDate, supabase } from "@/lib/supabaseClient";
+import { getFields, getBookingsByDate, supabase } from "@/lib/supabase/booking";
 
 export function usePadelData(defaultDate = null) {
   const todayDefault = new Date().toISOString().slice(0, 10);
@@ -7,36 +7,51 @@ export function usePadelData(defaultDate = null) {
   const [fields, setFields] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [realtimeStatus, setRealtimeStatus] = useState("CLOSED");
 
   const channelRef = useRef(null);
   const pollingRef = useRef(null);
+  const isFirstLoadRef = useRef(true);
 
-  // 🧠 Stable fetchData pakai useCallback biar referensinya tetap
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
+  // 🧠 Fetch only bookings (fields don't change often)
+  const fetchBookings = useCallback(async () => {
     try {
-      if (fields.length === 0) {
-        const fieldData = await getFields();
-        setFields(fieldData || []);
-      }
-
       const bookingData = await getBookingsByDate(selectedDate);
       setBookings(bookingData || []);
     } catch (error) {
-      console.error("Error fetching data:", error);
-    } finally {
-      setIsLoading(false);
+      console.error("Error fetching bookings:", error);
     }
-  }, [selectedDate, fields.length]);
+  }, [selectedDate]);
 
-  // 📆 Initial load
+  // 📊 Fetch fields once on mount
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    const fetchFields = async () => {
+      try {
+        const fieldData = await getFields();
+        setFields(fieldData || []);
+      } catch (error) {
+        console.error("Error fetching fields:", error);
+      }
+    };
+    fetchFields();
+  }, []); // Only run once
 
-  // 🚀 Supabase Realtime
+  // 📆 Initial load of bookings
   useEffect(() => {
-    if (channelRef.current) supabase.removeChannel(channelRef.current);
+    const loadInitialData = async () => {
+      setIsLoading(true);
+      await fetchBookings();
+      setIsLoading(false);
+      isFirstLoadRef.current = false;
+    };
+    loadInitialData();
+  }, [fetchBookings]);
+
+  // 🚀 Supabase Realtime with connection status tracking
+  useEffect(() => {
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+    }
 
     const channel = supabase
       .channel("bookings-realtime")
@@ -50,46 +65,81 @@ export function usePadelData(defaultDate = null) {
             oldData?.date === selectedDate
           ) {
             console.log("🔥 Realtime update:", payload.eventType);
-            fetchData();
+            fetchBookings();
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("📡 Realtime status:", status);
+        setRealtimeStatus(status);
+      });
 
     channelRef.current = channel;
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [selectedDate, fetchData]);
+  }, [selectedDate, fetchBookings]);
 
-  // ⏱ Polling fallback (aktif cuma kalau realtime gak aktif)
+  // ⏱ Polling fallback - ONLY when realtime is disconnected
   useEffect(() => {
-    const startPolling = () => {
-      if (pollingRef.current) clearInterval(pollingRef.current);
-      pollingRef.current = setInterval(fetchData, 20000);
-      console.log("▶️ Polling started");
-    };
+    // Don't poll if:
+    // 1. Still on first load
+    // 2. Realtime is connected
+    // 3. Tab is not visible
+    const shouldPoll =
+      !isFirstLoadRef.current &&
+      realtimeStatus !== "SUBSCRIBED" &&
+      document.visibilityState === "visible";
 
-    const stopPolling = () => {
-      if (pollingRef.current) clearInterval(pollingRef.current);
-      pollingRef.current = null;
-      console.log("⏸ Polling stopped");
-    };
+    if (!shouldPoll) {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+        console.log("⏸ Polling stopped - realtime active or tab hidden");
+      }
+      return;
+    }
 
-    // Aktif hanya jika tab visible
-    if (document.visibilityState === "visible") startPolling();
+    // Start polling only when realtime fails
+    if (!pollingRef.current) {
+      console.log("▶️ Polling started - realtime unavailable");
+      pollingRef.current = setInterval(fetchBookings, 20000);
+    }
+
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    };
+  }, [realtimeStatus, fetchBookings]);
+
+  // 👁 Handle visibility changes
+  useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") startPolling();
-      else stopPolling();
+      if (document.visibilityState === "visible") {
+        console.log("👁 Tab visible - fetching latest data");
+        fetchBookings();
+      } else if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+        console.log("🙈 Tab hidden - polling paused");
+      }
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
-      stopPolling();
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [fetchData]);
+  }, [fetchBookings]);
 
-  return { fields, bookings, selectedDate, setSelectedDate, isLoading };
+  return {
+    fields,
+    bookings,
+    selectedDate,
+    setSelectedDate,
+    isLoading,
+    realtimeStatus, // Expose status for debugging/UI feedback
+  };
 }
