@@ -26,7 +26,7 @@ export default function RootLayout({ children }) {
         {children}
         <Script
           src={
-            process.env.NODE_ENV === "production"
+            process.env.NEXT_PUBLIC_MIDTRANS_ENV === "production"
               ? "https://app.midtrans.com/snap/snap.js"
               : "https://app.sandbox.midtrans.com/snap/snap.js"
           }
